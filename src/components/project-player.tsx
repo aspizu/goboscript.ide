@@ -58,5 +58,5 @@ export function ProjectPlayer(props: ProjectPlayerProps) {
         loadProject()
     }, [loadProject])
 
-    return <div ref={ref} className="h-[360px] w-[480px] overflow-hidden" />
+    return <div ref={ref} className="h-[360px] w-[480px] overflow-hidden rounded-md" />
 }

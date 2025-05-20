@@ -14,15 +14,19 @@ import {
     MenubarMenu,
     MenubarTrigger,
 } from "@/components/ui/menubar"
-import {currentFilePath, files, type File as IFile} from "@/state"
+import {currentFilePath, files, setFiles, type File as IFile} from "@/state"
 import {batch, Signal, useSignal} from "@preact/signals-react"
 import {saveAs} from "file-saver"
+import JSZip from "jszip"
 import {project} from "./app"
 
-function requestFileUpload(): Promise<File | undefined> {
+function requestFileUpload({accept}: {accept?: string} = {}): Promise<
+    File | undefined
+> {
     return new Promise((resolve) => {
         const element = document.createElement("input")
         element.type = "file"
+        element.accept = accept || ""
         element.onchange = (e) => {
             const file = (e.target as HTMLInputElement | null)?.files?.[0]
             resolve(file)
@@ -57,6 +61,56 @@ async function addFile(file: File) {
 function saveProject() {
     if (!project.value) return
     saveAs(new Blob([project.value]), "project.sb3")
+}
+
+async function uploadProject() {
+    const zipFile = await requestFileUpload({accept: "application/zip"})
+    if (!zipFile) return
+
+    const zip = await JSZip.loadAsync(zipFile)
+    const extensionsAsText = ["gs", "svg", "toml", "txt"]
+
+    const newFiles = await Promise.all(
+        Object.values(zip.files).map(async (file) => {
+            const ext = file.name.split(".").pop() || ""
+            const content =
+                extensionsAsText.includes(ext) ?
+                    await file.async("text")
+                :   await file.async("blob")
+
+            return {
+                path: file.name,
+                text: content,
+            }
+        }),
+    )
+
+    const prefix =
+        newFiles
+            .find((f) => f.path.endsWith("/stage.gs"))
+            ?.path.slice(0, -"stage.gs".length) ?? ""
+
+    if (prefix === "" && !newFiles.find((f) => f.path === "stage.gs")) {
+        newFiles.push({
+            path: "stage.gs",
+            text: "",
+        })
+    }
+
+    batch(() => {
+        setFiles(
+            newFiles
+                .map((f) => ({
+                    ...f,
+                    path:
+                        f.path.startsWith(prefix) ?
+                            f.path.slice(prefix.length)
+                        :   f.path,
+                }))
+                .filter((f) => f.path),
+        )
+        currentFilePath.value = "stage.gs"
+    })
 }
 
 function NewFileDialog({isOpen}: {isOpen: Signal<boolean>}) {
@@ -130,6 +184,13 @@ export function AppMenubar() {
                             }}
                         >
                             Download Project
+                        </MenubarItem>
+                        <MenubarItem
+                            onClick={async () => {
+                                await uploadProject()
+                            }}
+                        >
+                            Upload Project
                         </MenubarItem>
                     </MenubarContent>
                 </MenubarMenu>

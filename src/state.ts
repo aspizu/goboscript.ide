@@ -1,8 +1,27 @@
-import {computed, signal} from "@preact/signals-react"
+import {signal} from "@preact/signals-react"
+import {$monaco, LANGUAGES} from "./features/app"
 
 export interface File {
     path: string
     text: string | Blob
+}
+
+export function setFiles(newFiles: File[]) {
+    files.value = newFiles
+    for (const file of newFiles) {
+        const model = $monaco.value?.editor.getModel(
+            $monaco.value.Uri.parse(`file:///${file.path}`),
+        )
+        if (model) {
+            $monaco.value?.editor.setModelLanguage(
+                model,
+                LANGUAGES[file.path.split(".").pop() ?? "txt"],
+            )
+            if (typeof file.text === "string") {
+                model.setValue(file.text)
+            }
+        }
+    }
 }
 
 export const files = signal<File[]>([
@@ -30,7 +49,3 @@ export const files = signal<File[]>([
 ])
 
 export const currentFilePath = signal("main.gs")
-
-export const currentFile = computed(
-    () => files.value.find((f) => f.path === currentFilePath.value)!,
-)
