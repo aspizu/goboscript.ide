@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/menubar"
 import {currentFilePath, files, type File as IFile} from "@/state"
 import {batch, Signal, useSignal} from "@preact/signals-react"
+import {saveAs} from "file-saver"
+import {project} from "./app"
 
 function requestFileUpload(): Promise<File | undefined> {
     return new Promise((resolve) => {
@@ -50,6 +52,11 @@ async function addFile(file: File) {
         files.value = [...files.value, obj]
         currentFilePath.value = obj.path
     })
+}
+
+function saveProject() {
+    if (!project.value) return
+    saveAs(new Blob([project.value]), "project.sb3")
 }
 
 function NewFileDialog({isOpen}: {isOpen: Signal<boolean>}) {
@@ -111,6 +118,18 @@ export function AppMenubar() {
                             }}
                         >
                             Upload File
+                        </MenubarItem>
+                    </MenubarContent>
+                </MenubarMenu>
+                <MenubarMenu>
+                    <MenubarTrigger>Project</MenubarTrigger>
+                    <MenubarContent>
+                        <MenubarItem
+                            onClick={() => {
+                                saveProject()
+                            }}
+                        >
+                            Download Project
                         </MenubarItem>
                     </MenubarContent>
                 </MenubarMenu>

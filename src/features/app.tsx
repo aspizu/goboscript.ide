@@ -18,7 +18,7 @@ const languages: Record<string, string> = {
     toml: "toml",
 }
 
-const project = signal<ArrayBuffer | null>(null)
+export const project = signal<ArrayBuffer | null>(null)
 
 async function onRun() {
     const memfs = {
@@ -31,7 +31,7 @@ async function onRun() {
             ),
         ),
     }
-    const result = Goboscript.build(memfs)
+    const result: ArrayBuffer = Goboscript.build(memfs)
     console.log(`Built project (${result.byteLength} bytes)`)
     project.value = result
 }
