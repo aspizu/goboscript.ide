@@ -5,7 +5,8 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "tsc -b && vite build",
+        "check": "tsc -b",
+        "build": "vite build --base=/goboscript.ide/",
         "lint": "eslint .",
         "preview": "vite preview",
         "fmt": "bunx --bun prettier --write ."
