@@ -8,6 +8,7 @@ function ConsoleMessage({severity, message, path, lineNo}: ConsoleMessage) {
         if (path in fs.value) {
             selectedFile.value = path
             setTimeout(() => {
+                editor.value.focus()
                 editor.value.setPosition({lineNumber: lineNo, column: 1})
             }, 0)
         }
