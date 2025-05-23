@@ -32,7 +32,7 @@ const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
-type SidebarContextProps = {
+interface SidebarContextProps {
     state: "expanded" | "collapsed"
     open: boolean
     setOpen: (open: boolean) => void
@@ -89,9 +89,7 @@ function SidebarProvider({
     )
 
     // Helper to toggle the sidebar.
-    const toggleSidebar = React.useCallback(() => {
-        return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
-    }, [isMobile, setOpen, setOpenMobile])
+    const toggleSidebar = React.useCallback(() => isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open), [isMobile, setOpen, setOpenMobile])
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
@@ -600,9 +598,7 @@ function SidebarMenuSkeleton({
     showIcon?: boolean
 }) {
     // Random width between 50 to 90%.
-    const width = React.useMemo(() => {
-        return `${Math.floor(Math.random() * 40) + 50}%`
-    }, [])
+    const width = React.useMemo(() => `${Math.floor(Math.random() * 40) + 50}%`, [])
 
     return (
         <div

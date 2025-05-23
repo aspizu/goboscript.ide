@@ -34,10 +34,7 @@ jobs:
             - name: Build Goboscript WASM
               run: |
                   cd goboscript
-                  git fetch origin wasm
-                  git switch wasm
-                  git pull origin wasm
-                  wasm-pack build
+                  wasm-pack build --release
 
             - name: Upload Goboscript WASM Artifact
               uses: actions/upload-artifact@v4
