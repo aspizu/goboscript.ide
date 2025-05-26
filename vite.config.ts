@@ -2,6 +2,7 @@ import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
 import {defineConfig} from "vite"
+import topLevelAwait from "vite-plugin-top-level-await"
 import wasm from "vite-plugin-wasm"
 
 export default defineConfig({
@@ -9,9 +10,11 @@ export default defineConfig({
         react({babel: {plugins: [["module:@preact/signals-react-transform"]]}}),
         tailwindcss(),
         wasm(),
+        topLevelAwait(),
     ],
     worker: {
-        plugins: () => [wasm()],
+        format: "es",
+        plugins: () => [wasm(), topLevelAwait()],
     },
     resolve: {alias: {"@": path.resolve(__dirname, "./src")}},
     build: {target: "esnext"},
