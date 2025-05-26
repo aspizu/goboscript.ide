@@ -34,7 +34,7 @@ jobs:
             - name: Build Goboscript WASM
               run: |
                   cd goboscript
-                  wasm-pack build --release --target web
+                  wasm-pack build --release
 
             - name: Upload Goboscript WASM Artifact
               uses: actions/upload-artifact@v4
