@@ -17,5 +17,5 @@ export default defineConfig({
         plugins: () => [wasm(), topLevelAwait()],
     },
     resolve: {alias: {"@": path.resolve(__dirname, "./src")}},
-    build: {target: "esnext"},
+    build: {target: "esnext", outDir: "dist", sourcemap: true, emptyOutDir: true},
 })
