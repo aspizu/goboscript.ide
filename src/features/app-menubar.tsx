@@ -15,12 +15,12 @@ import {
     MenubarShortcut,
     MenubarTrigger,
 } from "@/components/ui/menubar"
+import {useShortcuts} from "@/hooks/use-shortcuts"
 import {decode} from "@/lib/base64"
 import {build, FS} from "@/lib/state"
 import {openFilePicker} from "@/lib/utils"
 import {type Signal, useSignal} from "@preact/signals-react"
 import {saveAs} from "file-saver"
-import {useEffect} from "react"
 
 function NewFileDialog({isOpen}: {isOpen: Signal<boolean>}) {
     const path = useSignal("new_file.gs")
@@ -57,14 +57,9 @@ export function AppMenubar() {
         if (!files) return
         await Promise.all(files.map((file) => FS.addFile(file.name, file)))
     }
-    useEffect(() => {
-        document.addEventListener("keyup", (event) => {
-            if (event.ctrlKey && event.key == "n") {
-                isNewFileDialogOpen.value = true
-            } else if (event.ctrlKey && event.key == "o") {
-                uploadFile()
-            }
-        })
+    useShortcuts({
+        "alt+n": () => (isNewFileDialogOpen.value = true),
+        "alt+o": uploadFile,
     })
     return (
         <>
@@ -92,6 +87,38 @@ export function AppMenubar() {
                             }}
                         >
                             Download Project
+                        </MenubarItem>
+                    </MenubarContent>
+                </MenubarMenu>
+                <MenubarMenu>
+                    <MenubarTrigger>Help</MenubarTrigger>
+                    <MenubarContent>
+                        <MenubarItem asChild>
+                            <a
+                                href="https://github.com/aspizu/goboscript.ide"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                GitHub
+                            </a>
+                        </MenubarItem>
+                        <MenubarItem asChild>
+                            <a
+                                href="https://aspizu.github.io/goboscript/language/syntax"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Documentation
+                            </a>
+                        </MenubarItem>
+                        <MenubarItem asChild>
+                            <a
+                                href="https://discord.gg/W9ZWy6ZMA3"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Discord
+                            </a>
                         </MenubarItem>
                     </MenubarContent>
                 </MenubarMenu>
