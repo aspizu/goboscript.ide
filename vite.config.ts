@@ -10,6 +10,9 @@ export default defineConfig({
         tailwindcss(),
         wasm(),
     ],
+    worker: {
+        plugins: () => [wasm()],
+    },
     resolve: {alias: {"@": path.resolve(__dirname, "./src")}},
     build: {target: "esnext"},
 })
