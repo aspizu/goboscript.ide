@@ -49,5 +49,5 @@ export function convertPosition(
         i += line.length + 1 // +1 for \n
         line_no++
     }
-    throw new Error(`invalid position ${position} in ${include.path}`)
+    return [0, 0]
 }

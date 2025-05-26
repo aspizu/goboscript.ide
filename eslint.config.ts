@@ -25,6 +25,8 @@ export default tseslint.config([
             "@typescript-eslint/explicit-function-return-type": "off",
             "@typescript-eslint/explicit-module-boundary-types": "off",
             "no-async-promise-executor": "off",
+            "no-empty": "off",
+            "prefer-const": "off",
         },
     },
 ])

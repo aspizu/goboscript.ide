@@ -57,7 +57,7 @@ function ConsoleMessage({severity, message, path, lineNo}: ConsoleMessage) {
 export function AppConsole() {
     return (
         <div className="flex w-[480px] flex-col overflow-y-auto">
-            <div className="bg-background/80 border-border/50 sticky top-0 z-10 flex h-10 items-center gap-2 border-b p-1 pl-2 text-xs font-medium backdrop-blur-sm">
+            <div className="bg-background/80 border-border/50 sticky top-0 z-10 flex h-10 items-center gap-2 border-b py-1 pl-2 text-xs font-medium backdrop-blur-sm">
                 Console
                 <Button
                     size="icon"
