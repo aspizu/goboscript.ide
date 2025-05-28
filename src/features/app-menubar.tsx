@@ -2,47 +2,112 @@ import {Button} from "@/components/ui/button"
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle,
+    DialogTitle
 } from "@/components/ui/dialog"
-import {Input} from "@/components/ui/input"
 import {
     Menubar,
     MenubarContent,
     MenubarItem,
     MenubarMenu,
-    MenubarShortcut,
-    MenubarTrigger,
+    MenubarSeparator,
+    MenubarTrigger
 } from "@/components/ui/menubar"
-import {useShortcuts} from "@/hooks/use-shortcuts"
-import {decode} from "@/lib/base64"
-import {build, FS} from "@/lib/state"
-import {openFilePicker} from "@/lib/utils"
-import {type Signal, useSignal} from "@preact/signals-react"
+import {UploadBox} from "@/components/uploadbox"
+import {filepicker} from "@/lib/utils"
+import {Editor, FS, Project} from "@/state"
+import {useSignal, type Signal} from "@preact/signals-react"
 import {saveAs} from "file-saver"
+import JSZip from "jszip"
+import {ExternalLinkIcon} from "lucide-react"
+import * as pathlib from "path"
 
-function NewFileDialog({isOpen}: {isOpen: Signal<boolean>}) {
-    const path = useSignal("new_file.gs")
+async function onNewFile() {
+    const entry = {path: "Untitled.gs", file: ""}
+    let i = 2
+    while (FS.exists(entry.path)) {
+        entry.path = `Untitled ${i}.gs`
+        i++
+    }
+    await FS.addFile(entry)
+    Editor.setOpenFile(entry.path)
+}
+
+async function onOpenFile() {
+    const files = await filepicker("*", "multiple")
+    if (!files) return
+    const entries: {path: string; file: File}[] = []
+    for (const file of files) {
+        const extension = pathlib.extname(file.name)
+        const basename = file.name.slice(0, -extension.length)
+        const entry = {path: file.name, file: file}
+        let i = 2
+        while (FS.exists(entry.path)) {
+            entry.path = `${basename} ${i}${extension}`
+            i++
+        }
+        entries.push(entry)
+    }
+    await FS.addFile(...entries)
+    if (entries.length == 1) Editor.setOpenFile(entries[0].path)
+}
+
+async function onOpenFromLibrary() {
+    // TODO: Implement open from library functionality
+}
+
+async function onSaveAs() {
+    const path = Editor.getOpenFile()
+    const entry = FS.getFile(path)
+    if (path && entry) saveAs(entry, pathlib.basename(path))
+}
+
+async function onSaveProjectAs() {
+    saveAs(await FS.getDirectoryAsZip(""), "Project.zip")
+}
+
+async function onExportAs() {
+    const project = Project.getProject()
+    if (project) saveAs(new Blob([project]), "Project.sb3")
+}
+
+function ReplaceProjectDialog({open}: {open: Signal<boolean>}) {
+    const file = useSignal<File>()
+    async function onReplace() {
+        if (!file.value) return
+        const zip = await JSZip.loadAsync(file.value)
+        const stagePath = Object.keys(zip.files).find(
+            (name) => pathlib.basename(name) == "stage.gs"
+        )
+        const baseDir = stagePath && pathlib.dirname(stagePath)
+        const entries: {path: string; file: FS.Entry}[] = []
+        for (let file of Object.values(zip.files)) {
+            if (baseDir && !file.name.startsWith(baseDir)) continue
+            if (baseDir) file.name = file.name.slice(baseDir.length + 1)
+            entries.push({path: file.name, file: await file.async("blob")})
+        }
+        await FS.replaceFiles(entries)
+        open.value = false
+    }
     return (
-        <Dialog open={isOpen.value} onOpenChange={(open) => (isOpen.value = open)}>
+        <Dialog open={open.value} onOpenChange={(value) => (open.value = value)}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Create new file</DialogTitle>
+                    <DialogTitle>Open Project</DialogTitle>
+                    <DialogDescription>
+                        This will replace your current project with the opened project.
+                    </DialogDescription>
                 </DialogHeader>
-                <Input
-                    value={path.value}
-                    onChange={(e) => (path.value = e.target.value)}
-                />
+                <UploadBox file={file} accept="application/zip" />
                 <DialogFooter>
                     <Button
-                        disabled={!path.value.trim()}
-                        onClick={async () => {
-                            await FS.addFile(path.value, "")
-                            isOpen.value = false
-                        }}
+                        variant="destructive"
+                        disabled={!file.value}
+                        onClick={onReplace}
                     >
-                        Create
+                        Replace
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -51,79 +116,69 @@ function NewFileDialog({isOpen}: {isOpen: Signal<boolean>}) {
 }
 
 export function AppMenubar() {
-    const isNewFileDialogOpen = useSignal(false)
-    async function uploadFile() {
-        const files = await openFilePicker({multiple: true})
-        if (!files) return
-        await Promise.all(files.map((file) => FS.addFile(file.name, file)))
-    }
-    useShortcuts({
-        "alt+n": () => (isNewFileDialogOpen.value = true),
-        "alt+o": uploadFile,
-    })
+    const replaceProjectDialogOpen = useSignal(false)
     return (
-        <>
-            <Menubar className="m-0 h-auto border-none p-0">
-                <MenubarMenu>
-                    <MenubarTrigger>File</MenubarTrigger>
-                    <MenubarContent>
-                        <MenubarItem onClick={() => (isNewFileDialogOpen.value = true)}>
-                            New File <MenubarShortcut>⌘N</MenubarShortcut>
-                        </MenubarItem>
-                        <MenubarItem onClick={uploadFile}>
-                            Upload File <MenubarShortcut>⌘O</MenubarShortcut>
-                        </MenubarItem>
-                    </MenubarContent>
-                </MenubarMenu>
-                <MenubarMenu>
-                    <MenubarTrigger>Project</MenubarTrigger>
-                    <MenubarContent>
-                        <MenubarItem>Upload Project</MenubarItem>
-                        <MenubarItem
-                            onClick={() => {
-                                if (!build.value) return
-                                const data = decode(build.value.file as any)
-                                saveAs(data, "project.sb3")
-                            }}
+        <Menubar className="grow">
+            <MenubarMenu>
+                <MenubarTrigger>File</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem onSelect={onNewFile}>New</MenubarItem>
+                    <MenubarItem onSelect={onOpenFile}>Open...</MenubarItem>
+                    <MenubarItem onSelect={onOpenFromLibrary}>
+                        Open from Library...
+                    </MenubarItem>
+                    <MenubarItem onSelect={onSaveAs}>Save As...</MenubarItem>
+                    <MenubarSeparator />
+                    <MenubarItem
+                        onSelect={() => (replaceProjectDialogOpen.value = true)}
+                    >
+                        Open Project...
+                    </MenubarItem>
+                    <MenubarItem onSelect={onSaveProjectAs}>
+                        Save Project As...
+                    </MenubarItem>
+                    <MenubarSeparator />
+                    <MenubarItem onSelect={onExportAs} disabled={!Project.getProject()}>
+                        Export As...
+                    </MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+                <MenubarTrigger>Help</MenubarTrigger>
+                <MenubarContent>
+                    <MenubarItem asChild>
+                        <a
+                            href="https://aspizu.github.io/goboscript/getting-started/basic-examples/"
+                            target="_blank"
+                            rel="noopener noreferrer"
                         >
-                            Download Project
-                        </MenubarItem>
-                    </MenubarContent>
-                </MenubarMenu>
-                <MenubarMenu>
-                    <MenubarTrigger>Help</MenubarTrigger>
-                    <MenubarContent>
-                        <MenubarItem asChild>
-                            <a
-                                href="https://github.com/aspizu/goboscript.ide"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                GitHub
-                            </a>
-                        </MenubarItem>
-                        <MenubarItem asChild>
-                            <a
-                                href="https://aspizu.github.io/goboscript/language/syntax"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                Documentation
-                            </a>
-                        </MenubarItem>
-                        <MenubarItem asChild>
-                            <a
-                                href="https://discord.gg/W9ZWy6ZMA3"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                Discord
-                            </a>
-                        </MenubarItem>
-                    </MenubarContent>
-                </MenubarMenu>
-            </Menubar>
-            <NewFileDialog isOpen={isNewFileDialogOpen} />
-        </>
+                            Documentation
+                            <ExternalLinkIcon className="ml-auto" />
+                        </a>
+                    </MenubarItem>
+                    <MenubarItem asChild>
+                        <a
+                            href="https://github.com/aspizu/goboscript"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            GitHub
+                            <ExternalLinkIcon className="ml-auto" />
+                        </a>
+                    </MenubarItem>
+                    <MenubarItem asChild>
+                        <a
+                            href="https://discord.gg/W9ZWy6ZMA3"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Discord
+                            <ExternalLinkIcon className="ml-auto" />
+                        </a>
+                    </MenubarItem>
+                </MenubarContent>
+            </MenubarMenu>
+            <ReplaceProjectDialog open={replaceProjectDialogOpen} />
+        </Menubar>
     )
 }

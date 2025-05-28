@@ -1,76 +1,75 @@
 import {Button} from "@/components/ui/button"
-import {$console, editor, fs, selectedFile, type ConsoleMessage} from "@/lib/state"
 import {cn} from "@/lib/utils"
-import {AlertTriangleIcon, InfoIcon, ListXIcon, XCircleIcon} from "lucide-react"
+import {Console, Editor, FS} from "@/state"
+import {editor} from "@/state/editor"
+import {InfoIcon, ListXIcon, TriangleAlertIcon, XCircleIcon} from "lucide-react"
+import {useLayoutEffect, useRef} from "react"
 
-function ConsoleMessage({severity, message, path, lineNo}: ConsoleMessage) {
+function Message({severity, message, path, lineNumber}: Console.Message) {
     function activate() {
-        if (path in fs.value) {
-            selectedFile.value = path
+        if (FS.exists(path)) {
+            Editor.setOpenFile(path)
             setTimeout(() => {
                 editor.value.focus()
-                editor.value.setPosition({lineNumber: lineNo, column: 1})
+                editor.value.setPosition({lineNumber, column: 1})
             }, 0)
         }
     }
+    const Icon = {
+        error: XCircleIcon,
+        warn: TriangleAlertIcon,
+        log: InfoIcon
+    }[severity]
     return (
         <div
             className={cn(
-                "hover:bg-accent/30 flex items-center gap-1 rounded-lg px-3 py-2 transition-colors duration-200",
-                severity === "warn" && "bg-amber-500/10 hover:bg-amber-500/20",
-                severity === "error" && "bg-destructive/10 hover:bg-destructive/20",
+                "flex items-start gap-1 rounded-md px-2 py-1 font-mono transition-colors",
+                severity == "error" &&
+                    "bg-destructive/20 hover:bg-destructive/25 text-destructive",
+                severity == "warn" &&
+                    "bg-amber-300/20 text-amber-300 hover:bg-amber-300/25",
+                severity == "log" && "text-muted-foreground hover:bg-muted/50"
             )}
         >
-            <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                    {severity === "log" && (
-                        <InfoIcon className="text-muted-foreground/60 size-3" />
-                    )}
-                    {severity === "warn" && (
-                        <AlertTriangleIcon className="size-3 text-amber-400" />
-                    )}
-                    {severity === "error" && (
-                        <XCircleIcon className="text-destructive size-3" />
-                    )}
-                    <button
-                        className="text-muted-foreground/60 hover:text-muted-foreground cursor-pointer truncate font-mono text-[0.65rem]"
-                        onClick={activate}
-                    >
-                        {path}:{lineNo}
-                    </button>
-                </div>
-                <span
-                    className={cn(
-                        "mt-0.5 pl-5 font-mono text-xs",
-                        severity === "log" && "text-muted-foreground",
-                        severity === "warn" && "text-amber-300",
-                        severity === "error" && "text-destructive",
-                    )}
-                >
-                    {message}
-                </span>
-            </div>
+            <Icon className="size-5 shrink-0 pr-1" />
+            <pre className={cn("mr-auto block self-center text-xs text-wrap")}>
+                {message}
+            </pre>
+            <button
+                className={cn(
+                    "cursor-pointer text-[0.6rem] underline underline-offset-2"
+                )}
+                onClick={activate}
+            >
+                {path}:{lineNumber}
+            </button>
         </div>
     )
 }
 
 export function AppConsole() {
+    const ref = useRef<HTMLDivElement>(null)
+    const messages = Console.getMessages()
+    useLayoutEffect(() => {
+        if (!ref.current) return
+        ref.current.scrollTo({top: ref.current.scrollHeight, behavior: "smooth"})
+    }, [messages])
     return (
-        <div className="flex w-[480px] flex-col overflow-y-auto">
-            <div className="bg-background/80 border-border/50 sticky top-0 z-10 flex h-10 items-center gap-2 border-b py-1 pl-2 text-xs font-medium backdrop-blur-sm">
+        <div className="flex flex-col gap-1 overflow-y-scroll" ref={ref}>
+            <div className="bg-background sticky top-0 flex items-center border-b px-1 pb-2 text-xs font-semibold shadow-lg">
                 Console
                 <Button
-                    size="icon"
                     variant="ghost"
-                    className="ml-auto size-7"
-                    onClick={() => ($console.value = [])}
+                    size="icon"
+                    onClick={Console.removeAllMessages}
+                    className="ml-auto size-6"
                 >
                     <ListXIcon />
                 </Button>
             </div>
-            <div className="flex flex-col gap-1 pt-2">
-                {$console.value.map((message, i) => (
-                    <ConsoleMessage key={i} {...message} />
+            <div className="flex flex-col gap-1">
+                {messages.map((message, i) => (
+                    <Message key={i} {...message} />
                 ))}
             </div>
         </div>

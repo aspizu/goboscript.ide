@@ -60,7 +60,7 @@ export function register(monaco: NonNullable<ReturnType<typeof useMonaco>>) {
             "ln",
             "log",
             "antiln",
-            "antilog",
+            "antilog"
         ],
 
         typeKeywords: [
@@ -97,7 +97,7 @@ export function register(monaco: NonNullable<ReturnType<typeof useMonaco>>) {
             "color_is_touching_color",
             "answer",
             "random",
-            "contains",
+            "contains"
         ],
 
         operators: ["+", "-", "*", "/", "%", "<", ">", "=", "&", "!"],
@@ -111,21 +111,21 @@ export function register(monaco: NonNullable<ReturnType<typeof useMonaco>>) {
 
                 [
                     /%(include|define|undef|if|else|endif|if\snot\s)/,
-                    "keyword.directive",
+                    "keyword.directive"
                 ],
 
                 [/"/, {token: "string.quote", bracket: "@open", next: "@string"}],
 
                 [
                     /\b(proc|func)\b\s+([a-zA-Z_][_a-zA-Z0-9]*)/,
-                    ["keyword", "entity.name.function"],
+                    ["keyword", "entity.name.function"]
                 ],
                 [/[a-zA-Z_][_a-zA-Z0-9]*!/, "variable.parameter"],
                 [/\$[_a-zA-Z0-9]+/, "variable.parameter"],
 
                 [
                     /\b([0-9][_0-9]*|0x[_0-9a-fA-F]+|0b[_0-1]+|0o[_0-7]+|([0-9][0-9]*)?\.[0-9][_0-9]*)\b/,
-                    "number",
+                    "number"
                 ],
 
                 [/\.[a-zA-Z_0-9][_a-zA-Z_0-9]*/, "entity.name.function"],
@@ -138,29 +138,29 @@ export function register(monaco: NonNullable<ReturnType<typeof useMonaco>>) {
                         cases: {
                             "@keywords": "keyword",
                             "@typeKeywords": "type",
-                            "@default": "identifier",
-                        },
-                    },
-                ],
+                            "@default": "identifier"
+                        }
+                    }
+                ]
             ],
 
             commentBlock: [
                 [/[^/*]+/, "comment"],
                 [/\*\//, "comment", "@pop"],
-                [/[/*]/, "comment"],
+                [/[/*]/, "comment"]
             ],
 
             commentTriple: [
                 [/```/, "comment", "@pop"],
-                [/[^`]+/, "comment"],
+                [/[^`]+/, "comment"]
             ],
 
             string: [
                 [/[^\\"]+/, "string"],
                 [/\\["\\bfnrt]/, "string.escape"],
                 [/\\u[a-fA-F0-9]{4}/, "string.escape"],
-                [/"/, {token: "string.quote", bracket: "@close", next: "@pop"}],
-            ],
-        },
+                [/"/, {token: "string.quote", bracket: "@close", next: "@pop"}]
+            ]
+        }
     })
 }

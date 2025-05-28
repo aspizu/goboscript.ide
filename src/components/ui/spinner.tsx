@@ -7,12 +7,12 @@ const spinnerVariants = cva("flex-col items-center justify-center", {
     variants: {
         show: {
             true: "flex",
-            false: "hidden",
-        },
+            false: "hidden"
+        }
     },
     defaultVariants: {
-        show: true,
-    },
+        show: true
+    }
 })
 
 const loaderVariants = cva("animate-spin text-primary", {
@@ -20,12 +20,12 @@ const loaderVariants = cva("animate-spin text-primary", {
         size: {
             small: "size-6",
             medium: "size-8",
-            large: "size-12",
-        },
+            large: "size-12"
+        }
     },
     defaultVariants: {
-        size: "medium",
-    },
+        size: "medium"
+    }
 })
 
 interface SpinnerContentProps

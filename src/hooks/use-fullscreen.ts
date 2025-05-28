@@ -3,7 +3,7 @@ import {useEffect, type RefObject} from "react"
 
 export function useFullscreen(
     state: Signal<boolean>,
-    ref: RefObject<HTMLElement | null>,
+    ref: RefObject<HTMLElement | null>
 ) {
     useSignalEffect(() => {
         if (state.value) {

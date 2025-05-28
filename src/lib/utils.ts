@@ -5,39 +5,20 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-export async function openFilePicker(
-    options: {
-        multiple?: boolean
-        accept?: string
-        capture?: "user" | "environment"
-    } = {},
-): Promise<File[] | null> {
-    return new Promise((resolve) => {
+export function filepicker(accept?: string | null, multiple?: "multiple" | null) {
+    return new Promise<FileList | null>((resolve) => {
         const input = document.createElement("input")
         input.type = "file"
-        input.multiple = options.multiple ?? false
-        if (options.accept) input.accept = options.accept
-        if (options.capture) input.capture = options.capture
-
-        input.onchange = () => {
-            resolve(input.files?.length ? Array.from(input.files) : null)
-            document.body.removeChild(input)
-        }
-
-        window.addEventListener(
-            "focus",
-            () =>
-                setTimeout(() => {
-                    if (!input.files?.length) {
-                        resolve(null)
-                        document.body.removeChild(input)
-                    }
-                }, 300),
-            {once: true},
-        )
-
+        input.accept = accept || ""
+        input.multiple = !!multiple
         input.style.display = "none"
-        document.body.appendChild(input)
+        input.oninput = (event) => {
+            resolve((event.target as HTMLInputElement).files)
+        }
+        input.oncancel = () => {
+            resolve(null)
+        }
+        document.body.append(input)
         input.click()
     })
 }

@@ -2,15 +2,22 @@ import {Button} from "@/components/ui/button"
 import {
     Collapsible,
     CollapsibleContent,
-    CollapsibleTrigger,
+    CollapsibleTrigger
 } from "@/components/ui/collapsible"
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
-    ContextMenuTrigger,
+    ContextMenuTrigger
 } from "@/components/ui/context-menu"
-import {Dialog, DialogContent, DialogFooter, DialogHeader} from "@/components/ui/dialog"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog"
 import {Input} from "@/components/ui/input"
 import {
     Sidebar,
@@ -21,108 +28,106 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarMenuSub,
-    SidebarMenuSubItem,
+    SidebarMenuSub
 } from "@/components/ui/sidebar"
-import {editor, FS, fs, selectedFile} from "@/lib/state"
-import {cn} from "@/lib/utils"
-import {type Signal, useSignal} from "@preact/signals-react"
-import {DialogTitle} from "@radix-ui/react-dialog"
+import {getCodeIcon} from "@/lib/codeicons"
+import {cn, filepicker} from "@/lib/utils"
+import {Editor, FS} from "@/state"
+import {useSignal, type Signal} from "@preact/signals-react"
+import {saveAs} from "file-saver"
 import {
     BoxIcon,
     BracesIcon,
     CogIcon,
     FileIcon,
     FolderIcon,
-    PenToolIcon,
+    ImageIcon,
+    PenToolIcon
 } from "lucide-react"
+import * as pathlib from "path"
 
-type FTreeSegment =
-    | {kind: "file"; path: string}
-    | {kind: "folder"; path: string; children: FTreeSegment[]}
-
-function fileTree(paths: string[]): FTreeSegment[] {
-    const tree: FTreeSegment[] = []
-    const sortedPaths = [...paths].sort()
-
-    for (const path of sortedPaths) {
-        const parts = path.split("/")
-        let currentLevel = tree
-        let currentPath = ""
-
-        for (let i = 0; i < parts.length - 1; i++) {
-            const folderName = parts[i]
-            currentPath = currentPath ? `${currentPath}/${folderName}` : folderName
-            const folderMap = new Map<string, FTreeSegment>()
-
-            for (const item of currentLevel) {
-                if (item.kind === "folder") folderMap.set(item.path, item)
-            }
-
-            let folder = folderMap.get(currentPath)
-            if (!folder) {
-                folder = {kind: "folder", path: currentPath, children: []}
-                currentLevel.push(folder)
-            }
-            currentLevel = (folder as FTreeSegment & {kind: "folder"}).children
-        }
-
-        currentLevel.push({kind: "file", path: path})
-    }
-    return tree
+function getFileIcon(path: string) {
+    if (/^[^/]*\.gs$/.test(path)) return BoxIcon
+    if (path == "goboscript.toml") return CogIcon
+    if (path.endsWith(".gs")) return BracesIcon
+    if (path.endsWith(".svg")) return PenToolIcon
+    if (/\.(bmp|png|jpg|jpeg)$/.test(path)) return ImageIcon
+    const codeIcon = getCodeIcon(pathlib.extname(path).slice(1))
+    if (codeIcon) return codeIcon
+    return FileIcon
 }
 
-function RenameFileEntryDialog({
-    isOpen,
+function getFileColor(path: string) {
+    if (path == "stage.gs") return cn("text-cyan-200")
+    if (/^[^/]*\.gs$/.test(path)) return cn("text-blue-200")
+    if (path == "goboscript.toml") return cn("text-green-200")
+    if (path.endsWith(".gs")) return cn("text-red-200")
+    if (path.endsWith(".svg")) return cn("text-purple-200")
+    if (/\.(bmp|png|jpg|jpeg)$/.test(path)) return cn("text-emerald-200")
+    return cn("text-muted-foreground")
+}
+
+function RenameDialog({
+    open,
     path,
+    isDirectory
 }: {
-    isOpen: Signal<boolean>
+    open: Signal<boolean>
     path: string
+    isDirectory?: boolean
 }) {
     const newPath = useSignal(path)
-
-    function handleRename() {
+    function onRename() {
+        if (isDirectory) return FS.renameDirectory(path, newPath.value)
         FS.renameFile(path, newPath.value)
-        isOpen.value = false
+        if (Editor.getOpenFile() == path) Editor.setOpenFile(newPath.value)
     }
-
     return (
-        <Dialog open={isOpen.value} onOpenChange={(open) => (isOpen.value = open)}>
+        <Dialog open={open.value} onOpenChange={(value) => (open.value = value)}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Rename {path}</DialogTitle>
+                    <DialogTitle>Rename {pathlib.basename(path)}</DialogTitle>
+                    <DialogDescription>Enter a full absolute path</DialogDescription>
                 </DialogHeader>
                 <Input
                     value={newPath.value}
-                    onChange={(e) => (newPath.value = e.target.value)}
+                    onChange={(event) => (newPath.value = event.target.value)}
                 />
                 <DialogFooter>
-                    <Button onClick={handleRename}>Rename</Button>
+                    <Button onClick={onRename}>Rename</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     )
 }
 
-function DeleteFileEntryDialog({
-    isOpen,
+function DeleteDialog({
+    open,
     path,
+    isDirectory = false
 }: {
-    isOpen: Signal<boolean>
+    open: Signal<boolean>
     path: string
+    isDirectory?: boolean
 }) {
-    function handleDelete() {
-        isOpen.value = false
-        setTimeout(() => FS.removeFile(path), 10)
+    function onDelete() {
+        if (isDirectory) {
+            FS.removeDirectory(path)
+            if (Editor.getOpenFile()?.startsWith(path)) Editor.close()
+        } else {
+            FS.removeFile(path)
+            if (Editor.getOpenFile() == path) Editor.close()
+        }
     }
     return (
-        <Dialog open={isOpen.value} onOpenChange={(open) => (isOpen.value = open)}>
+        <Dialog open={open.value} onOpenChange={(value) => (open.value = value)}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Delete {path}</DialogTitle>
+                    <DialogTitle>Delete {pathlib.basename(path)}?</DialogTitle>
+                    <DialogDescription>This action cannot be undone!</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <Button variant="destructive" onClick={handleDelete}>
+                    <Button variant="destructive" onClick={onDelete}>
                         Delete
                     </Button>
                 </DialogFooter>
@@ -131,107 +136,153 @@ function DeleteFileEntryDialog({
     )
 }
 
-function TreeEntry({segment}: {segment: FTreeSegment}) {
-    if (segment.kind === "file") {
-        return <FileEntry segment={segment} />
+function EntryContextMenu({
+    path,
+    isRenameDialogOpen,
+    isDeleteDialogOpen,
+    isDirectory,
+    open,
+    children
+}: {
+    path: string
+    isRenameDialogOpen: Signal<boolean>
+    isDeleteDialogOpen: Signal<boolean>
+    isDirectory?: boolean
+    open: Signal<boolean>
+    children: React.ReactNode
+}) {
+    async function onSaveAs() {
+        if (!isDirectory) return saveAs(FS.getFile(path)!, pathlib.basename(path))
+        saveAs(await FS.getDirectoryAsZip(path), pathlib.basename(path) + ".zip")
     }
-
-    const folderName = segment.path.split("/").pop() || segment.path
-
+    async function onDuplicate() {
+        const entry = {path, file: FS.getFile(path)!}
+        const extension = pathlib.extname(path)
+        const filename = pathlib.basename(path)
+        const basename = `${path.slice(0, -filename.length)}${filename.slice(0, -extension.length)}`
+        entry.path = `${basename} copy${extension}`
+        let i = 2
+        while (FS.exists(entry.path)) {
+            entry.path = `${basename} copy ${i}${extension}`
+            i++
+        }
+        FS.addFile(entry)
+    }
+    async function onReplace() {
+        const files = await filepicker(pathlib.extname(path))
+        if (!files) return
+        await FS.replaceFile(path, files[0])
+    }
     return (
-        <Collapsible defaultOpen className="group/collapsible">
-            <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                    <SidebarMenuButton>
-                        <FolderIcon className="text-muted-foreground" />
-                        {folderName}
-                    </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                    <SidebarMenuSub>
-                        {segment.children.map((child) => (
-                            <SidebarMenuSubItem key={child.path}>
-                                <TreeEntry segment={child} />
-                            </SidebarMenuSubItem>
-                        ))}
-                    </SidebarMenuSub>
-                </CollapsibleContent>
-            </SidebarMenuItem>
-        </Collapsible>
-    )
-}
-
-function FileEntry({segment}: {segment: FTreeSegment}) {
-    const isRenameDialogOpen = useSignal(false)
-    const isDeleteDialogOpen = useSignal(false)
-    const fileName = segment.path.split("/").pop() || segment.path
-    const isStage = segment.kind == "file" && fileName == "stage.gs"
-    const isSprite =
-        segment.kind == "file" && !isStage && /^[^/]+\.gs$/.test(segment.path)
-    const isHeader =
-        segment.kind == "file" && !isSprite && !isStage && fileName.endsWith(".gs")
-    const isSvg = segment.kind == "file" && fileName.endsWith(".svg")
-    const isConfig = segment.kind == "file" && fileName == "goboscript.toml"
-
-    let Icon = FileIcon
-    if (isStage || isSprite) Icon = BoxIcon
-    else if (isHeader) Icon = BracesIcon
-    else if (isSvg) Icon = PenToolIcon
-    else if (isConfig) Icon = CogIcon
-
-    return (
-        <ContextMenu>
+        <ContextMenu onOpenChange={(value) => (open.value = value)}>
             <ContextMenuTrigger asChild>
-                <SidebarMenuButton
-                    isActive={segment.path === selectedFile.value}
-                    onClick={() => {
-                        selectedFile.value = segment.path
-                        setTimeout(() => editor.value?.focus(), 0)
-                    }}
-                >
-                    <Icon
-                        className={cn(
-                            "text-muted-foreground",
-                            isStage && "text-green-200",
-                            isSprite && "text-blue-200",
-                            isSvg && "text-amber-200",
-                            isConfig && "text-orange-200",
-                            isHeader && "text-purple-200",
-                        )}
-                    />
-                    {fileName}
-                </SidebarMenuButton>
+                <div>{children}</div>
             </ContextMenuTrigger>
             <ContextMenuContent>
+                {!isDirectory && (
+                    <ContextMenuItem onClick={onDuplicate}>Duplicate</ContextMenuItem>
+                )}
                 <ContextMenuItem onClick={() => (isRenameDialogOpen.value = true)}>
-                    Rename
+                    Rename...
                 </ContextMenuItem>
+                <ContextMenuItem onClick={onSaveAs}>Save As...</ContextMenuItem>
+                {!isDirectory && (
+                    <ContextMenuItem variant="destructive" onClick={onReplace}>
+                        Replace...
+                    </ContextMenuItem>
+                )}
                 <ContextMenuItem
                     variant="destructive"
                     onClick={() => (isDeleteDialogOpen.value = true)}
                 >
-                    Delete
+                    Delete...
                 </ContextMenuItem>
             </ContextMenuContent>
-            <RenameFileEntryDialog isOpen={isRenameDialogOpen} path={segment.path} />
-            <DeleteFileEntryDialog isOpen={isDeleteDialogOpen} path={segment.path} />
         </ContextMenu>
     )
 }
 
-export function AppSidebar() {
-    const tree = fileTree(Object.keys(fs.value))
+function SubTree({path, children}: {path: string; children: [string, FS.Tree][]}) {
+    const isRenameDialogOpen = useSignal(false)
+    const isDeleteDialogOpen = useSignal(false)
+    const contextOpen = useSignal(false)
+    const entries = children.map(([path, children]) => (
+        <Tree key={path} path={path}>
+            {children}
+        </Tree>
+    ))
     return (
-        <Sidebar collapsible="icon">
+        <SidebarMenuItem>
+            <Collapsible>
+                <CollapsibleTrigger asChild>
+                    <div>
+                        <EntryContextMenu
+                            path={path}
+                            isRenameDialogOpen={isRenameDialogOpen}
+                            isDeleteDialogOpen={isDeleteDialogOpen}
+                            open={contextOpen}
+                            isDirectory
+                        >
+                            <SidebarMenuButton isActive={contextOpen.value}>
+                                <FolderIcon className="text-muted-foreground" />
+                                {pathlib.basename(path)}
+                            </SidebarMenuButton>
+                        </EntryContextMenu>
+                    </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <SidebarMenuSub>{entries}</SidebarMenuSub>
+                </CollapsibleContent>
+            </Collapsible>
+            <RenameDialog open={isRenameDialogOpen} path={path} isDirectory />
+            <DeleteDialog open={isDeleteDialogOpen} path={path} isDirectory />
+        </SidebarMenuItem>
+    )
+}
+
+function Tree({path, children}: {path: string; children: FS.Tree}) {
+    const isRenameDialogOpen = useSignal(false)
+    const isDeleteDialogOpen = useSignal(false)
+    const contextOpen = useSignal(false)
+    const entries = Object.entries(children)
+    if (entries.length) return <SubTree path={path}>{entries}</SubTree>
+    const Icon = getFileIcon(path)
+    return (
+        <SidebarMenuItem>
+            <EntryContextMenu
+                path={path}
+                isRenameDialogOpen={isRenameDialogOpen}
+                isDeleteDialogOpen={isDeleteDialogOpen}
+                open={contextOpen}
+            >
+                <SidebarMenuButton
+                    isActive={path == Editor.getOpenFile() || contextOpen.value}
+                    onClick={() => Editor.setOpenFile(path)}
+                >
+                    <Icon className={getFileColor(path)} />
+                    {pathlib.basename(path)}
+                </SidebarMenuButton>
+            </EntryContextMenu>
+            <RenameDialog open={isRenameDialogOpen} path={path} />
+            <DeleteDialog open={isDeleteDialogOpen} path={path} />
+        </SidebarMenuItem>
+    )
+}
+
+export function AppSidebar() {
+    const tree = FS.getTree()
+    const entries = Object.entries(tree).map(([path, children]) => (
+        <Tree key={path} path={path}>
+            {children}
+        </Tree>
+    ))
+    return (
+        <Sidebar>
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupLabel>Files</SidebarGroupLabel>
                     <SidebarGroupContent>
-                        <SidebarMenu>
-                            {tree.map((segment) => (
-                                <TreeEntry key={segment.path} segment={segment} />
-                            ))}
-                        </SidebarMenu>
+                        <SidebarMenu>{entries}</SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>

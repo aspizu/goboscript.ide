@@ -3,37 +3,37 @@ import {languages} from "monaco-editor"
 
 export const conf: languages.LanguageConfiguration = {
     comments: {
-        lineComment: "#",
+        lineComment: "#"
     },
     brackets: [
         ["{", "}"],
         ["[", "]"],
-        ["(", ")"],
+        ["(", ")"]
     ],
     autoClosingPairs: [
         {open: "{", close: "}"},
         {open: "[", close: "]"},
         {open: "(", close: ")"},
         {open: '"', close: '"'},
-        {open: "'", close: "'"},
+        {open: "'", close: "'"}
     ],
     folding: {
-        offSide: true,
+        offSide: true
     },
     onEnterRules: [
         {
-            beforeText: /[\{\[]\s*$/,
+            beforeText: /[{[]\s*$/,
             action: {
-                indentAction: languages.IndentAction.Indent,
-            },
-        },
-    ],
+                indentAction: languages.IndentAction.Indent
+            }
+        }
+    ]
 }
 export const language: languages.IMonarchLanguage = {
     tokenPostfix: ".toml",
     brackets: [
         {token: "delimiter.bracket", open: "{", close: "}"},
-        {token: "delimiter.square", open: "[", close: "]"},
+        {token: "delimiter.square", open: "[", close: "]"}
     ],
 
     // https://toml.io/en/v1.0.0#integer
@@ -64,7 +64,7 @@ export const language: languages.IMonarchLanguage = {
     // - +-, 0-9 for numbers
     // - i/n for special numbers
     // - [ for arrays, { for tables
-    valueStart: /(["'tf0-9+\-in\[\{])/,
+    valueStart: /(["'tf0-9+\-in[{])/,
 
     tokenizer: {
         root: [
@@ -79,7 +79,7 @@ export const language: languages.IMonarchLanguage = {
             // *invalid* value without a key, still parse
             // the value so it doesn't become a key and mess up
             // further parsing
-            [/=/, "delimiter", "@value"],
+            [/=/, "delimiter", "@value"]
         ],
         comment: [[/#.*$/, "comment"]],
         whitespace: [[/[ \t\r\n]+/, "white"]],
@@ -95,10 +95,10 @@ export const language: languages.IMonarchLanguage = {
                 /=/,
                 {
                     token: "delimiter",
-                    switchTo: "@value",
-                },
+                    switchTo: "@value"
+                }
             ],
-            [/./, "@rematch", "@pop"],
+            [/./, "@rematch", "@pop"]
         ],
 
         // Parsing a key identifier
@@ -111,7 +111,7 @@ export const language: languages.IMonarchLanguage = {
             // increase nesting
             [/\[/, "@brackets", "@table"],
             [/@identChainStart/, "@rematch", "@identChain.type"],
-            [/\]/, "@brackets", "@pop"],
+            [/\]/, "@brackets", "@pop"]
         ],
 
         // Table name identifier
@@ -123,7 +123,7 @@ export const language: languages.IMonarchLanguage = {
             {include: "@comment"},
             {include: "@value.cases"},
             // not valid value
-            [/./, "@rematch", "@pop"],
+            [/./, "@rematch", "@pop"]
         ],
 
         "value.string.singleQuoted":
@@ -146,7 +146,7 @@ export const language: languages.IMonarchLanguage = {
             [/"""(""|")?/, "string.multi", "@pop"],
 
             // not terminated by single "
-            [/"/, "string.multi"],
+            [/"/, "string.multi"]
         ],
         "value.string.multi.singleQuoted": [
             // anything not ' is part of the string
@@ -155,7 +155,7 @@ export const language: languages.IMonarchLanguage = {
             [/'''(''|')?/, "string.literal.multi", "@pop"],
 
             // not terminated by single '
-            [/'/, "string.literal.multi"],
+            [/'/, "string.literal.multi"]
         ],
 
         // Arrays
@@ -164,13 +164,13 @@ export const language: languages.IMonarchLanguage = {
             {include: "@comment"},
             // closing the array
             [/\]/, "@brackets", "@pop"],
-            // seprator
+            // separator
             [/,/, "delimiter"],
             // values in the array
             [/@valueStart/, "@rematch", "@value.array.entry"],
 
             // invalid syntax, skip until , or ]
-            [/.+(?=[,\]])/, "source"],
+            [/.+(?=[,\]])/, "source"]
         ],
 
         // One entry in the array
@@ -183,7 +183,7 @@ export const language: languages.IMonarchLanguage = {
             [/.+(?=[,\]])/, "source", "@pop"],
             // unterminated array, just give up
             // and skip one character
-            [/./, "source", "@pop"],
+            [/./, "source", "@pop"]
         ],
 
         // Inline-tables
@@ -192,7 +192,7 @@ export const language: languages.IMonarchLanguage = {
             {include: "@comment"},
             // closing the table
             [/\}/, "@brackets", "@pop"],
-            // seprator
+            // separator
             [/,/, "delimiter"],
             // key-value pairs in the table
             [/@identChainStart/, "@rematch", "@value.inlinetable.entry"],
@@ -205,7 +205,7 @@ export const language: languages.IMonarchLanguage = {
             // *invalid* value without key or =
             [/@valueStart/, "@rematch", "@value.inlinetable.value"],
             // invalid syntax, skip until , or }
-            [/.+(?=[,\}])/, "source", "@pop"],
+            [/.+(?=[,}])/, "source", "@pop"]
         ],
 
         // One entry (key-value pair) in the inline table
@@ -220,11 +220,11 @@ export const language: languages.IMonarchLanguage = {
                 /=/,
                 {
                     token: "delimiter",
-                    switchTo: "@value.inlinetable.value",
-                },
+                    switchTo: "@value.inlinetable.value"
+                }
             ],
             // invalid syntax, skip until , or }
-            [/.+(?=[,\}])/, "source", "@pop"],
+            [/.+(?=[,}])/, "source", "@pop"]
         ],
 
         // One value entry in the inline table
@@ -234,10 +234,10 @@ export const language: languages.IMonarchLanguage = {
             // values in the table - pops back to inlinetable if matches
             {include: "@value.cases"},
             // invalid syntax, skip until , or }
-            [/.+(?=[,\}])/, "source", "@pop"],
+            [/.+(?=[,}])/, "source", "@pop"],
             // unterminated table, just give up
             // and skip one character
-            [/./, "source", "@pop"],
+            [/./, "source", "@pop"]
         ],
 
         "value.cases": [
@@ -246,16 +246,16 @@ export const language: languages.IMonarchLanguage = {
                 /"""/,
                 {
                     token: "string.multi",
-                    switchTo: "@value.string.multi.doubleQuoted",
-                },
+                    switchTo: "@value.string.multi.doubleQuoted"
+                }
             ],
             [/"(\\.|[^"])*$/, "string.invalid"], // unterminated
             [
                 /"/,
                 {
                     token: "string",
-                    switchTo: "@value.string.doubleQuoted",
-                },
+                    switchTo: "@value.string.doubleQuoted"
+                }
             ],
 
             // literal (single quote) strings
@@ -263,16 +263,16 @@ export const language: languages.IMonarchLanguage = {
                 /'''/,
                 {
                     token: "string.literal.multi",
-                    switchTo: "@value.string.multi.singleQuoted",
-                },
+                    switchTo: "@value.string.multi.singleQuoted"
+                }
             ],
             [/'[^']*$/, "string.literal.invalid"], // unterminated
             [
                 /'/,
                 {
                     token: "string.literal",
-                    switchTo: "@value.string.singleQuoted",
-                },
+                    switchTo: "@value.string.singleQuoted"
+                }
             ],
 
             // boolean
@@ -283,8 +283,8 @@ export const language: languages.IMonarchLanguage = {
                 /\[/,
                 {
                     token: "@brackets",
-                    switchTo: "@value.array",
-                },
+                    switchTo: "@value.array"
+                }
             ],
 
             // inline tables
@@ -292,8 +292,8 @@ export const language: languages.IMonarchLanguage = {
                 /\{/,
                 {
                     token: "@brackets",
-                    switchTo: "@value.inlinetable",
-                },
+                    switchTo: "@value.inlinetable"
+                }
             ],
 
             // integer type
@@ -305,13 +305,13 @@ export const language: languages.IMonarchLanguage = {
             // - oxb for hex, octal, binary
             // - \. and eE for floats
             // - '-' and ':' for date and time
-            [/@numberInteger(?![0-9_oxbeE\.:-])/, "number", "@pop"],
+            [/@numberInteger(?![0-9_oxbeE.:-])/, "number", "@pop"],
 
             // float
             [
                 /@numberInteger(@floatFractionPart@floatExponentPart?|@floatExponentPart)/,
                 "number.float",
-                "@pop",
+                "@pop"
             ],
 
             // integer types
@@ -326,9 +326,9 @@ export const language: languages.IMonarchLanguage = {
             // Date Time (offset and local)
             [/@date[Tt ]@time(@offset|Z)?/, "number.datetime", "@pop"],
             [/@date/, "number.date", "@pop"],
-            [/@time/, "number.time", "@pop"],
-        ],
-    },
+            [/@time/, "number.time", "@pop"]
+        ]
+    }
 }
 
 type State = languages.IMonarchLanguageRule[]
@@ -357,8 +357,8 @@ function createIdentChainStates(tokenClass: string): Record<string, State> {
                 /'/,
                 {
                     token: singleQuoteClass,
-                    next: `@${singleQuotedState}`,
-                },
+                    next: `@${singleQuotedState}`
+                }
             ],
 
             // string
@@ -367,15 +367,15 @@ function createIdentChainStates(tokenClass: string): Record<string, State> {
                 /"/,
                 {
                     token: doubleQuoteClass,
-                    next: `@${doubleQuotedState}`,
-                },
+                    next: `@${doubleQuotedState}`
+                }
             ],
 
             // end of identifier chain
-            [/./, "@rematch", "@pop"],
+            [/./, "@rematch", "@pop"]
         ],
         [singleQuotedState]: createSingleLineLiteralStringState(singleQuoteClass),
-        [doubleQuotedState]: createSingleLineStringState(doubleQuoteClass),
+        [doubleQuotedState]: createSingleLineStringState(doubleQuoteClass)
     }
 }
 
@@ -388,7 +388,7 @@ function createSingleLineLiteralStringState(tokenClass: string): State {
         // anything not a single quote
         [/[^']+/, tokenClass],
         // end of string
-        [/'/, tokenClass, "@pop"],
+        [/'/, tokenClass, "@pop"]
     ]
 }
 
@@ -407,7 +407,7 @@ function createSingleLineStringState(tokenClass: string): State {
         [/\\./, `constant.character.escape.invalid`],
 
         // end of string
-        [/"/, tokenClass, "@pop"],
+        [/"/, tokenClass, "@pop"]
     ]
 }
 
@@ -416,7 +416,7 @@ export function register(monaco: NonNullable<ReturnType<typeof useMonaco>>) {
         id: "toml",
         extensions: [".toml"],
         aliases: ["TOML", "toml"],
-        mimetypes: ["application/toml", "text/toml"],
+        mimetypes: ["application/toml", "text/toml"]
     })
     monaco.languages.setLanguageConfiguration("toml", conf)
     monaco.languages.setMonarchTokensProvider("toml", language)

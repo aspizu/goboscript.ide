@@ -13,7 +13,7 @@ export default tseslint.config([
         languageOptions: {ecmaVersion: "latest", globals: globals.browser},
         plugins: {
             "react-hooks": reactHooks,
-            "ban-relative-imports": banRelativeImports,
+            "ban-relative-imports": banRelativeImports
         },
         rules: {
             ...reactHooks.configs.recommended.rules,
@@ -26,7 +26,7 @@ export default tseslint.config([
             "@typescript-eslint/explicit-module-boundary-types": "off",
             "no-async-promise-executor": "off",
             "no-empty": "off",
-            "prefer-const": "off",
-        },
-    },
+            "prefer-const": "off"
+        }
+    }
 ])

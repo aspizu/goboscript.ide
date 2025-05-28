@@ -1,28 +1,27 @@
 import {SidebarProvider} from "@/components/ui/sidebar"
 import {AppEditor} from "@/features/app-editor"
 import {AppHeader} from "@/features/app-header"
-import {AppPlayer, isAppPlayerVisible} from "@/features/app-player"
+import {AppPanel} from "@/features/app-panel"
 import {AppSidebar} from "@/features/app-sidebar"
 import {cn} from "@/lib/utils"
+import {panelOpen} from "@/state"
 
 export function App() {
     return (
-        <SidebarProvider className="h-[100dvh]">
+        <SidebarProvider className="h-dvh">
             <AppSidebar />
-            <div className="flex grow flex-col overflow-hidden">
+            <div className="flex grow flex-col">
                 <AppHeader />
                 <div
                     className={cn(
-                        "grid grow overflow-hidden transition-[grid-template-columns] duration-300 ease-in-out",
-                        isAppPlayerVisible.value ?
+                        "grid grow overflow-hidden transition-all duration-200 ease-linear",
+                        panelOpen.value ?
                             "grid-cols-[auto_calc(480px+var(--spacing)*2)]"
-                        :   "grid-cols-[auto_0px]",
+                        :   "grid-cols-[auto_0px]"
                     )}
                 >
-                    <div className="flex grow flex-col overflow-hidden">
-                        <AppEditor />
-                    </div>
-                    <AppPlayer />
+                    <AppEditor />
+                    <AppPanel />
                 </div>
             </div>
         </SidebarProvider>
